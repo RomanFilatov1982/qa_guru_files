@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="guru.qa.FilesTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-07-13T19:24:49" hostname="WIN-93OOUG3KSUQ" time="0.119">
+  <properties/>
+  <testcase name="unZipFileAndReadAll()" classname="guru.qa.FilesTest" time="0.119"/>
+  <system-out><![CDATA[3.csv
+1.pdf
+2.xlsx
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
