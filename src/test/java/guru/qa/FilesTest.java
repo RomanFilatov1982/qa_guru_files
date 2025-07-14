@@ -44,23 +44,24 @@ public class FilesTest {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 String name = entry.getName();
+                byte[] bytes = zis.readAllBytes();
                 if (name.equals("1.pdf")) {
-                    try (PDDocument pdf = PDDocument.load(zis)) {
+                    try (PDDocument pdf = PDDocument.load(new ByteArrayInputStream(bytes))) {
                         String text = new PDFTextStripper().getText(pdf);
                         Assertions.assertTrue(text.contains("Блок питания DEEPCOOL PF500 [R-PF500D-HA0B-EU] черный"));
 
                     }
                 } else if (name.equals("2.xlsx")) {
-                    try (XSSFWorkbook workbook = new XSSFWorkbook(zis)) {
+                    try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
                         Sheet sheet = workbook.getSheetAt(0);
                         Assertions.assertEquals("февраль07", sheet.getSheetName());
 
                     }
                 } else if (name.equals("3.csv")) {
-                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(zis, StandardCharsets.UTF_8))) {
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8))) {
                         List<String> lines = reader.lines().collect(Collectors.toList());
-                        Assertions.assertEquals(lines.get(0), 0);
-                        Assertions.assertTrue(lines.isEmpty(), String.valueOf(false));
+                        Assertions.assertFalse(lines.isEmpty(), String.valueOf(false));
 
                     }
 
