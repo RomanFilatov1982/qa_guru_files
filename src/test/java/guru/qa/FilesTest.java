@@ -1,82 +1,120 @@
 package guru.qa;
 
 import com.codeborne.pdftest.PDF;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.codeborne.xlstest.XLS;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import net.sf.jxls.reader.XLSReader;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import com.opencsv.CSVReader;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.openqa.selenium.Pdf;
-import org.openqa.selenium.json.Json;
 
 import java.io.*;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 
 public class FilesTest {
     private ClassLoader cl = FilesTest.class.getClassLoader();
 
-
     @Test
-    void unZipFileAndReadAll() throws Exception {
-        try (InputStream is = cl.getResourceAsStream("fill.zip");
-             ZipInputStream zis = new ZipInputStream(is)) {
+    @DisplayName("Проверка CSV-файла из ZIP архива")
+    void csvFileParsingTest() throws Exception {
+        try (ZipInputStream zis = new ZipInputStream(cl.getResourceAsStream("fill.zip"))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                String name = entry.getName();
-                byte[] bytes = zis.readAllBytes();
-                if (name.equals("1.pdf")) {
-                    try (PDDocument pdf = PDDocument.load(new ByteArrayInputStream(bytes))) {
-                        String text = new PDFTextStripper().getText(pdf);
-                        Assertions.assertTrue(text.contains("Блок питания DEEPCOOL PF500 [R-PF500D-HA0B-EU] черный"));
-
+                if (entry.getName().endsWith(".csv")) {
+                    try (CSVReader csvReader = new CSVReader(new InputStreamReader(zis))) {
+                        List<String[]> data = csvReader.readAll();
+                        Assertions.assertEquals("Customer ID", data.get(0)[0]);
+                        Assertions.assertEquals(4, data.size());
+                        Assertions.assertArrayEquals(new String[]{"35", "151", "8796712009", "2341543509824323"}, data.get(1));
                     }
-                } else if (name.equals("2.xlsx")) {
-                    try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
-                        Sheet sheet = workbook.getSheetAt(0);
-                        Assertions.assertEquals("февраль07", sheet.getSheetName());
+                    break;
+                }
 
-                    }
-                } else if (name.equals("3.csv")) {
-                    try (BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8))) {
-                        List<String> lines = reader.lines().collect(Collectors.toList());
-                        Assertions.assertFalse(lines.isEmpty(), String.valueOf(false));
+            }
+        }
 
-                    }
+    }
 
+    @Test
+    @DisplayName("Проверка PDF-файла из ZIP архива")
+    void pdfFileParsingTest() throws Exception {
+        try (ZipInputStream zipInput = new ZipInputStream(
+                cl.getResourceAsStream("fill.zip")
+        )) {
+            ZipEntry entry;
+            while ((entry = zipInput.getNextEntry()) != null) {
+                if (entry.getName().endsWith(".pdf")) {
+                    PDF pdf = new PDF(zipInput);
+                    Assertions.assertEquals("DNS – интернет магазин цифровой и бытовой техники по доступным ценам.", pdf.title);
+                    Assertions.assertEquals(null, pdf.author);
+                    return;
                 }
             }
         }
     }
-        @Test
-        void jsonFileParsingTest() throws IOException {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(new File("src/test/resources/DNS.json"));
-            Assertions.assertEquals("SKU-12345", jsonNode.get("items").get(0).get("productId").asText());
-            System.out.println(jsonNode.get("items").get(0).get("productId").asText());
+
+    @Test
+    @DisplayName("Проверка XLSX-файла из ZIP архива")
+    void xlsxFileParsingTest() throws Exception {
+        try (ZipInputStream zis = new ZipInputStream(
+                cl.getResourceAsStream("fill.zip")
+        )) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if (entry.getName().endsWith(".xlsx")) {
+                    XLS xls = new XLS(zis);
+                    String actualValue = xls.excel.getSheetAt(0).getRow(0).getCell(3).getStringCellValue();
+                    Assertions.assertTrue(actualValue.contains("Postal code"));
+                }
+            }
         }
     }
+
+    @Test
+    @DisplayName("Проверка Json-файла")
+    void dnsReserveJsonShouldBeValidTest() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+
+        try (InputStream is = cl.getResourceAsStream("DNS.json")) {
+            JsonNode root = mapper.readTree(is);
+            JsonNode dnsReserve = root.get("dnsReserve");
+
+            Assertions.assertEquals("ORD-20250714-001", dnsReserve.get("orderId").asText());
+
+            JsonNode customer = dnsReserve.get("customer");
+            Assertions.assertEquals("Иван Петров", customer.get("name").asText());
+            Assertions.assertEquals("ivan.petrov@example.com", customer.get("email").asText());
+            Assertions.assertEquals("+7-900-123-45-67", customer.get("phone").asText());
+
+            JsonNode items = dnsReserve.get("items");
+            JsonNode firstItem = items.get(0);
+            Assertions.assertEquals("SKU-12345", firstItem.get("productId").asText());
+            Assertions.assertEquals("Беспроводная мышь Logitech M185", firstItem.get("name").asText());
+            Assertions.assertEquals(1, firstItem.get("quantity").asInt());
+            Assertions.assertEquals(1299.00, firstItem.get("price").asDouble());
+
+            JsonNode secondItem = items.get(1);
+            Assertions.assertEquals("SKU-67890", secondItem.get("productId").asText());
+            Assertions.assertEquals("Клавиатура Logitech K380", secondItem.get("name").asText());
+            Assertions.assertEquals(2, secondItem.get("quantity").asInt());
+            Assertions.assertEquals(2890.00, secondItem.get("price").asDouble());
+
+            Assertions.assertEquals(7079.00, dnsReserve.get("total").asDouble());
+
+            JsonNode delivery = dnsReserve.get("delivery");
+            Assertions.assertEquals("Курьер", delivery.get("type").asText());
+            Assertions.assertEquals("г. Москва, ул. Ленина, д. 10, кв. 15", delivery.get("address").asText());
+            Assertions.assertEquals("2025-07-16", delivery.get("date").asText());
+
+            Assertions.assertEquals("Ожидает отправки", dnsReserve.get("status").asText());
+        }
+    }
+}
+
 
 
 
