@@ -5,9 +5,10 @@ import com.codeborne.xlstest.XLS;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.CSVReader;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.*;
+import org.junit.jupiter.api.DisplayName;
 
 import java.io.*;
 import java.util.List;
@@ -27,9 +28,9 @@ public class FilesTest {
                 if (entry.getName().endsWith(".csv")) {
                     try (CSVReader csvReader = new CSVReader(new InputStreamReader(zis))) {
                         List<String[]> data = csvReader.readAll();
-                        Assertions.assertEquals("Customer ID", data.get(0)[0]);
-                        Assertions.assertEquals(4, data.size());
-                        Assertions.assertArrayEquals(new String[]{"35", "151", "8796712009", "2341543509824323"}, data.get(1));
+                        Assertions.assertThat(data.get(0)[0]).isEqualTo("Customer ID");
+                        Assertions.assertThat(data.size()).isEqualTo(4);
+                        Assertions.assertThat(data.get(1)).isEqualTo(new String[]{"35", "151", "8796712009", "2341543509824323"});
                     }
                     break;
                 }
@@ -49,8 +50,8 @@ public class FilesTest {
             while ((entry = zipInput.getNextEntry()) != null) {
                 if (entry.getName().endsWith(".pdf")) {
                     PDF pdf = new PDF(zipInput);
-                    Assertions.assertEquals("DNS – интернет магазин цифровой и бытовой техники по доступным ценам.", pdf.title);
-                    Assertions.assertEquals(null, pdf.author);
+                    Assertions.assertThat(pdf.title).isEqualTo("DNS – интернет магазин цифровой и бытовой техники по доступным ценам.");
+                    assertThat(pdf.author).isNull();
                     return;
                 }
             }
@@ -68,7 +69,7 @@ public class FilesTest {
                 if (entry.getName().endsWith(".xlsx")) {
                     XLS xls = new XLS(zis);
                     String actualValue = xls.excel.getSheetAt(0).getRow(0).getCell(3).getStringCellValue();
-                    Assertions.assertTrue(actualValue.contains("Postal code"));
+                    Assertions.assertThat(actualValue).contains("Postal code");
                 }
             }
         }
@@ -83,34 +84,34 @@ public class FilesTest {
             JsonNode root = mapper.readTree(is);
             JsonNode dnsReserve = root.get("dnsReserve");
 
-            Assertions.assertEquals("ORD-20250714-001", dnsReserve.get("orderId").asText());
+            Assertions.assertThat(dnsReserve.get("orderId").asText()).isEqualTo("ORD-20250714-001");
 
             JsonNode customer = dnsReserve.get("customer");
-            Assertions.assertEquals("Иван Петров", customer.get("name").asText());
-            Assertions.assertEquals("ivan.petrov@example.com", customer.get("email").asText());
-            Assertions.assertEquals("+7-900-123-45-67", customer.get("phone").asText());
+            Assertions.assertThat(customer.get("name").asText()).isEqualTo("Иван Петров");
+            Assertions.assertThat(customer.get("email").asText()).isEqualTo("ivan.petrov@example.com");
+            Assertions.assertThat(customer.get("phone").asText()).isEqualTo("+7-900-123-45-67");
 
             JsonNode items = dnsReserve.get("items");
             JsonNode firstItem = items.get(0);
-            Assertions.assertEquals("SKU-12345", firstItem.get("productId").asText());
-            Assertions.assertEquals("Беспроводная мышь Logitech M185", firstItem.get("name").asText());
-            Assertions.assertEquals(1, firstItem.get("quantity").asInt());
-            Assertions.assertEquals(1299.00, firstItem.get("price").asDouble());
+            Assertions.assertThat(firstItem.get("productId").asText()).isEqualTo("SKU-12345");
+            Assertions.assertThat(firstItem.get("name").asText()).isEqualTo("Беспроводная мышь Logitech M185");
+            Assertions.assertThat(firstItem.get("quantity").asInt()).isEqualTo(1);
+            Assertions.assertThat(firstItem.get("price").asDouble()).isEqualTo(1299.00);
 
             JsonNode secondItem = items.get(1);
-            Assertions.assertEquals("SKU-67890", secondItem.get("productId").asText());
-            Assertions.assertEquals("Клавиатура Logitech K380", secondItem.get("name").asText());
-            Assertions.assertEquals(2, secondItem.get("quantity").asInt());
-            Assertions.assertEquals(2890.00, secondItem.get("price").asDouble());
+            Assertions.assertThat(secondItem.get("productId").asText()).isEqualTo("SKU-67890");
+            Assertions.assertThat(secondItem.get("name").asText()).isEqualTo("Клавиатура Logitech K380");
+            Assertions.assertThat(secondItem.get("quantity").asInt()).isEqualTo(2);
+            Assertions.assertThat(secondItem.get("price").asDouble()).isEqualTo(2890.00);
 
-            Assertions.assertEquals(7079.00, dnsReserve.get("total").asDouble());
+            Assertions.assertThat(dnsReserve.get("total").asDouble()).isEqualTo(7079.00);
 
             JsonNode delivery = dnsReserve.get("delivery");
-            Assertions.assertEquals("Курьер", delivery.get("type").asText());
-            Assertions.assertEquals("г. Москва, ул. Ленина, д. 10, кв. 15", delivery.get("address").asText());
-            Assertions.assertEquals("2025-07-16", delivery.get("date").asText());
+            Assertions.assertThat(delivery.get("type").asText()).isEqualTo("Курьер");
+            Assertions.assertThat(delivery.get("address").asText()).isEqualTo("г. Москва, ул. Ленина, д. 10, кв. 15");
+            Assertions.assertThat(delivery.get("date").asText()).isEqualTo("2025-07-16");
 
-            Assertions.assertEquals("Ожидает отправки", dnsReserve.get("status").asText());
+            Assertions.assertThat(dnsReserve.get("status").asText()).isEqualTo("Ожидает отправки");
         }
     }
 }
