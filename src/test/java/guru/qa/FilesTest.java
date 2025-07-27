@@ -24,8 +24,10 @@ public class FilesTest {
     void csvFileParsingTest() throws Exception {
         try (ZipInputStream zis = new ZipInputStream(cl.getResourceAsStream("fill.zip"))) {
             ZipEntry entry;
+            boolean csvFound = false;
             while ((entry = zis.getNextEntry()) != null) {
                 if (entry.getName().endsWith(".csv")) {
+                    csvFound = true;
                     try (CSVReader csvReader = new CSVReader(new InputStreamReader(zis))) {
                         List<String[]> data = csvReader.readAll();
                         Assertions.assertThat(data.get(0)[0]).isEqualTo("Customer ID");
@@ -36,6 +38,7 @@ public class FilesTest {
                 }
 
             }
+            Assertions.assertThat(csvFound).as("CSV файл не найден в архиве").isTrue();
         }
 
     }
@@ -47,14 +50,17 @@ public class FilesTest {
                 cl.getResourceAsStream("fill.zip")
         )) {
             ZipEntry entry;
+            boolean pdfFound = false;
             while ((entry = zipInput.getNextEntry()) != null) {
                 if (entry.getName().endsWith(".pdf")) {
+                    pdfFound = true;
                     PDF pdf = new PDF(zipInput);
                     Assertions.assertThat(pdf.title).isEqualTo("DNS – интернет магазин цифровой и бытовой техники по доступным ценам.");
                     assertThat(pdf.author).isNull();
                     return;
                 }
             }
+            Assertions.assertThat(pdfFound).as("PDF файл не найден в архиве").isTrue();
         }
     }
 
@@ -65,13 +71,16 @@ public class FilesTest {
                 cl.getResourceAsStream("fill.zip")
         )) {
             ZipEntry entry;
+            boolean xlsxFound = false;
             while ((entry = zis.getNextEntry()) != null) {
                 if (entry.getName().endsWith(".xlsx")) {
+                    xlsxFound = true;
                     XLS xls = new XLS(zis);
                     String actualValue = xls.excel.getSheetAt(0).getRow(0).getCell(3).getStringCellValue();
                     Assertions.assertThat(actualValue).contains("Postal code");
                 }
             }
+            Assertions.assertThat(xlsxFound).as("XLSX файл не найден в архиве").isTrue();
         }
     }
 
